@@ -1,0 +1,52 @@
+apply plugin: 'java'
+apply plugin: 'war'
+apply plugin: 'groovy'
+apply plugin: 'idea'
+
+ext {
+    springVersion = "4.2.5.RELEASE"
+	thymeleafVersion = "2.1.4.RELEASE"
+	logbackVersion = "1.1.6"
+	spockVersion = "1.0-groovy-2.4"
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+	// JavaX
+	compile "javax.servlet:javax.servlet-api:3.1.0"
+	compile "javax.inject:javax.inject:1"
+
+    // Spring Framework
+    compile "org.springframework:spring-context:${springVersion}"
+    compile "org.springframework:spring-webmvc:${springVersion}"
+
+	// Validation
+	compile "javax.validation:validation-api:1.1.0.Final"
+	compile "org.hibernate:hibernate-validator:5.2.4.Final"
+
+	// Thymeleaf
+	compile "org.thymeleaf:thymeleaf:${thymeleafVersion}"
+	compile "org.thymeleaf:thymeleaf-spring4:${thymeleafVersion}"
+	compile "nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect:1.3.1"
+
+	// Jackson
+	compile 'com.fasterxml.jackson.core:jackson-core:2.7.2'
+	compile 'com.fasterxml.jackson.core:jackson-databind:2.7.2'
+
+    // Logger
+    compile "org.slf4j:slf4j-api:1.7.18"
+	compile "ch.qos.logback:logback-core:${logbackVersion}"
+	compile "ch.qos.logback:logback-classic:${logbackVersion}"
+
+	// Test
+	testCompile "org.springframework:spring-test:${springVersion}"
+	testCompile "org.spockframework:spock-core:${spockVersion}"
+	testCompile "org.spockframework:spock-spring:${spockVersion}"
+	testCompile "org.mockito:mockito-all:2.0.2-beta"
+	testCompile "com.jayway.jsonpath:json-path:2.1.0"
+
+	[compileJava, compileTestJava]*.options*.encoding = "UTF-8"
+}
