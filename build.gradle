@@ -1,17 +1,69 @@
+buildscript {
+	ext {
+		springVersion = "4.2.5.RELEASE"
+		queryDslVersion = "4.0.9"
+		thymeleafVersion = "2.1.4.RELEASE"
+		logbackVersion = "1.1.6"
+		spockVersion = "1.0-groovy-2.4"
+		mysqlVersion = "5.1.38"
+	}
+
+	repositories {
+		jcenter()
+	}
+
+	dependencies {
+		classpath "net.saliman:gradle-properties-plugin:1.4.4"
+		classpath "com.querydsl:querydsl-sql-codegen:4.0.9"
+		classpath "mysql:mysql-connector-java:${mysqlVersion}"
+	}
+}
+
+plugins {
+	id "net.saliman.properties" version "1.4.4"
+	id "org.flywaydb.flyway" version "3.2.1"
+}
+
 apply plugin: 'java'
 apply plugin: 'war'
 apply plugin: 'groovy'
 apply plugin: 'idea'
+apply plugin: "net.saliman.properties"
 
-ext {
-    springVersion = "4.2.5.RELEASE"
-	thymeleafVersion = "2.1.4.RELEASE"
-	logbackVersion = "1.1.6"
-	spockVersion = "1.0-groovy-2.4"
+import groovy.sql.Sql;
+import com.querydsl.sql.codegen.MetaDataExporter;
+
+sourceSets {
+	generated {
+		java {
+			srcDirs = ["src/main/querydsl"]
+		}
+	}
+	main {
+		java.srcDirs = ["src/main/java", "src/main/querydsl"]
+		output.resourcesDir = "build/classes/main"
+	}
 }
 
 repositories {
     jcenter()
+
+	maven {
+		url "http://repo.spring.io/milestone"
+	}
+}
+
+configurations {
+	all.collect { configuration ->
+		configuration.exclude group: 'commons-logging', module: 'commons-logging'
+		configuration.exclude group: 'log4j', module: 'log4j'
+		configuration.exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+		configuration.exclude group: 'org.slf4j', module: 'slf4j-jcl'
+		configuration.exclude group: 'org.slf4j', module: 'slf4j-jdk14'
+	}
+
+	querydslapt
+	mysqlDriver
 }
 
 dependencies {
@@ -23,8 +75,20 @@ dependencies {
     compile "org.springframework:spring-context:${springVersion}"
     compile "org.springframework:spring-webmvc:${springVersion}"
 
+	// Persistence
+	compile "javax.persistence:persistence-api:1.0.2"
+	compile "org.springframework.data:spring-data-jpa:1.10.0.M1"
+	compile "org.hibernate:hibernate-entitymanager:5.1.0.Final"
+	compile "com.querydsl:querydsl-jpa:${queryDslVersion}"
+	compile "com.querydsl:querydsl-sql:${queryDslVersion}"
+	querydslapt "com.querydsl:querydsl-apt:${queryDslVersion}"
+
+	// Connection Pool & Driver
+	compile "com.zaxxer:HikariCP:2.4.3"
+	compile "mysql:mysql-connector-java:${mysqlVersion}"
+	mysqlDriver "mysql:mysql-connector-java:${mysqlVersion}"
+
 	// Validation
-	compile "javax.validation:validation-api:1.1.0.Final"
 	compile "org.hibernate:hibernate-validator:5.2.4.Final"
 
 	// Thymeleaf
@@ -37,7 +101,6 @@ dependencies {
 	compile 'com.fasterxml.jackson.core:jackson-databind:2.7.2'
 
     // Logger
-    compile "org.slf4j:slf4j-api:1.7.18"
 	compile "ch.qos.logback:logback-core:${logbackVersion}"
 	compile "ch.qos.logback:logback-classic:${logbackVersion}"
 
@@ -49,4 +112,55 @@ dependencies {
 	testCompile "com.jayway.jsonpath:json-path:2.1.0"
 
 	[compileJava, compileTestJava]*.options*.encoding = "UTF-8"
+}
+
+task generateQueryDSL(
+		type: JavaCompile,
+		group: 'build',
+		description: 'Generates the QueryDSL query types') {
+	configurations.mysqlDriver.each {file ->
+		gradle.class.classLoader.addURL(file.toURI().toURL())
+	}
+
+	def sql = Sql.newInstance(databaseUrl, databaseUsername, databasePassword, databaseDriverClassName)
+
+	MetaDataExporter exporter = new MetaDataExporter()
+
+	exporter.setSchemaToPackage(false);
+	exporter.setTargetFolder(sourceSets.generated.java.srcDirs.iterator().next())
+	exporter.setPackageName(querydslExporterPackage)
+
+	try {
+		exporter.export(sql.getConnection().getMetaData())
+	} finally {
+		sql.close()
+	}
+}
+
+compileJava {
+	dependsOn generateQueryDSL
+}
+
+compileGeneratedJava {
+	dependsOn generateQueryDSL
+	options.warnings = false
+	classpath += sourceSets.main.runtimeClasspath
+}
+
+clean {
+	delete sourceSets.generated.java.srcDirs
+}
+
+idea {
+	module {
+		sourceDirs += sourceSets.generated.java.srcDirs
+	}
+}
+
+flyway {
+	driver = databaseDriverClassName
+	url = databaseUrl
+	user = databaseUsername
+	password = databasePassword
+	locations = ["filesystem:migrations"]
 }

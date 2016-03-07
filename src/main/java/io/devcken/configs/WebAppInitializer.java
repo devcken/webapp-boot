@@ -1,5 +1,6 @@
 package io.devcken.configs;
 
+import io.devcken.configs.persistence.QueryDslConfig;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.CharacterEncodingFilter;
 import org.springframework.web.servlet.support.AbstractAnnotationConfigDispatcherServletInitializer;
@@ -22,7 +23,9 @@ public class WebAppInitializer extends AbstractAnnotationConfigDispatcherServlet
 	 */
 	@Override
 	protected java.lang.Class<?>[] getRootConfigClasses() {
-		return new java.lang.Class<?>[0];
+		return new java.lang.Class<?>[] {
+				QueryDslConfig.class
+		};
 	}
 
 	/**

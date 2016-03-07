@@ -1,5 +1,6 @@
 package io.devcken.configs;
 
+import io.devcken.configs.persistence.TransactionConfig;
 import io.devcken.configs.view.ThymeleafConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -15,13 +16,23 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+/**
+ * {@link org.springframework.web.servlet.DispatcherServlet}에 설정할 MVC 설정들을 구현한다.
+ * <p>
+ * <p>MVC 설정에는 {@link Validator}가 있으며 {@link Validator}가 사용하게 될
+ * {@link ReloadableResourceBundleMessageSource} 또한 Spring Bean으로 설정된다.
+ * 그 외에 리소스의 URL 패턴과 classpath를 연결시키기 위해서
+ * {@link #addResourceHandlers(ResourceHandlerRegistry)}를 구현한다.
+ *
+ * @author Leejun Choi
+ */
 @Configuration
 @EnableWebMvc
 @EnableAsync
 @ComponentScan(
 		basePackages = { "io.devcken.boot", "io.devcken.exception" }
 )
-@Import({ ThymeleafConfig.class })
+@Import({ ThymeleafConfig.class, TransactionConfig.class })
 public class WebServletConfig extends WebMvcConfigurerAdapter {
 	@Autowired
 	ApplicationContext context;
