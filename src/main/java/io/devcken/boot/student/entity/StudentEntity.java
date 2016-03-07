@@ -1,14 +1,13 @@
-package io.devcken.boot.employee.entity;
+package io.devcken.boot.student.entity;
 
-import com.querydsl.core.annotations.QueryEntity;
+import org.neo4j.ogm.annotation.GraphId;
+import org.neo4j.ogm.annotation.NodeEntity;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
 import javax.validation.constraints.NotNull;
 
-@QueryEntity
-public class EmployeeEntity {
-	@Id
+@NodeEntity
+public class StudentEntity {
+	@GraphId
 	private Long id;
 
 	@NotNull

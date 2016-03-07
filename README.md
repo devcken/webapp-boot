@@ -97,6 +97,129 @@ registry.addResourceHandler("/scripts/**").addResourceLocations("classpath:scrip
 script에 대한 경로를 외부로 열어주기 위해서는 위와 같이 설정한다. 여기서 `/scripts/**`는 외부로 공개되었을 때의 contextPath 이하의 경로를 나타내고
 `classpath:script/`는 classpath 내의 경로를 뜻한다.
 
+## JPA && QueryDSL
+
+persistence API의 현재 버전: *1.0.2*
+Spring Data JPA의 현재 버전: *1.10.0.M1*
+QueryDSL의 현재 버전: *4.0.9*
+
+Relational database에 대한 persistence와 query를 위해 JPA와 QueryDSL을 사용한다. Boot는 예제 등을 위해 *MySQL*을 사용하고 있으며 다른 database에도
+충분히 대응할 수 있는 구조로 되어 있다.
+
+### QueryDslConfig
+
+#### Data source
+
+Database에 접속하기 위해서는 javax.sql.DataSource의 구현이 필요한데, Boot는 [HikariCP](https://github.com/brettwooldridge/HikariCP)를 사용한다.
+
+HikariCP의 현재 버전: *2.4.3*
+
+`QueryDslConfig#dataSource()`를 통해 Spring bean으로 등록되며 database에 접속하기 위한 모든 정보는 `classpath:datasource.properties`로부터
+가져오도록 되어 있다.
+
+#### Jpa vendor
+
+*Hibernate*을 JPA vendor로 사용한다.
+
+MySQL이 아닌 다른 database를 사용해야 할 경우, 다음 설정을 사용하려는 database에 맞게 수정해야 한다
+
+```
+jpaVendorAdapter.setDatabase(Database.MYSQL);
+jpaVendorAdapter.setDatabasePlatform("org.hibernate.dialect.MySQL5Dialect");
+```
+
+#### Entity manager
+
+Data source를 이용해 database와 연결하고 entity들을 이용해 query하는 등의 역할을 하는 `EntityManager`를 만들기 위해
+`org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean`을 bean으로 등록한다.
+
+#### Query Factory
+
+QueryDSL에는 크게 JPA로 query하는 방법과 SQL로 query하는 방법이 있는데 Boot에서는 SQL로 query하는 방법을 사용한다. 그래서 `com.querydsl.sql.SQLQueryFactory`를
+bean으로 등록한다. `SQLQueryFactory`를 등록할 때에도 database에 따라 설정되는 template이 달라지므로 database 변경 시에 유의해야 한다.
+
+```
+com.querydsl.sql.Configuration configuration = new com.querydsl.sql.Configuration(new MySQLTemplates());
+```
+
+> `com.querydsl.sql.SQLQueryFactory`을 사용해 쿼리하려면 entity class를 `com.querydsl.sql.RelationalPathBase` class로 확장한 class가 필요하다.
+이런 class들은 database의 schema로부터 가져와 생성해야 하는데, 이를 위해 Gradle task를 제공하고 있으므로 [Generating query types for QueryDSL](#Generating query types for QueryDSL)을
+참고하기 바란다.
+
+### Transaction config
+
+#### Transaction manager
+
+JPA에서 transaction을 사용하려면 `org.springframework.orm.jpa.JpaTransactionManager`을 bean으로 등록해야 한다.
+
+#### QueryDsl config와의 분리
+
+Transaction 설정을 database source나 entity manager 등의 설정과 분리했는데 이는 transaction이 *thread-safe*한 환경에서만 실행 가능하기 때문이다.
+사실 이것은 Spring Security를 적용하기 위함인데 Spring Security는 별도의 context에 설정이 가능하므로 QueryDsl 등의 persistence 설정을
+servlet context와 공유할 수 있는 구조로 구성하는 것이 좋다. 하지만 그럴 경우 transaction이 thread-safe하지 못한 환경에 놓이게 되므로 사용이 불가하다.
+
+이를 위해 분리한 것이며 QueryDsl의 설정은 Spring Security의 context 혹은 root context에 등록하고, transaction config는 각각의 context 별로
+따로 등록하도록 했다.
+
+### Generating query types for QueryDSL
+
+QueryDSL 사용을 위해서는 QueryDSL을 위한 query type이 필요한데 이 때 사용하는 것이 `com.querydsl.sql.codegen.MetaDataExporter`이며 Boot에서는
+이를 이용해 query type 생성을 위한 task를 마련하고 있다.
+
+#### Gradle task `generateQueryDSL`
+
+`com.querydsl.sql.codegen.MetaDataExporter`을 이용해 database 상의 schema를 query type으로 가져오는 gradle task다.
+
+```
+$ gradle generateQueryDSL
+```
+
+위와 같이 실행하고 정상적으로 완료되면,
+
+```
+:generateQueryDSL UP-TO-DATE
+
+BUILD SUCCESSFUL
+```
+
+query type이 생성된다. `src/main/querydsl/io/devcken/boot/querydsl`의 경로에 생성되며 table 이름 앞에 영대문자 'Q'가 prefix된 이름으로 생성된다.
+
+> MetaDataExporter가 query type을 만들 때, schema_version이라는 table을 사용하는데 공교롭게도 이 table에 대한 query type도 함께 만들어진다.
+이 query type이 생성되지 않게 하는 방법은 아직 찾지 못했다.
+
+### Examples for JPA and QueryDSL
+
+JPA와 QueryDSL을 위한 예제는 `io.devcken.boot.employee`에 있다.
+
+## Neo4J
+
+Spring data Neo4J의 현재 버전: *4.0.0.RELEASE*
+
+Boot는 [Neo4J](http://neo4j.com) 지원을 위해 Spring data Neo4J를 사용한다.
+
+### Neo4J config
+
+`Neo4jConfig`는 접속 정보를 위해 `classpath:neo4j.properties`를 참조하며 `org.springframework.data.neo4j.config.Neo4jConfiguration`을
+확장하여 구현한다.
+
+#### Neo4jServer
+
+Neo4J 서버 정보는 `org.springframework.data.neo4j.server.Neo4jServer`의 bean으로 등록되어야 한다.
+
+#### Session
+
+Neo4J에 대한 접속은 session으로 이루어지는데 이를 위해 `org.neo4j.ogm.session.SessionFactory`이 필요하다. 이는 bean으로 등록되며
+`Neo4jConfig#getSession()` method는 `org.springframework.data.neo4j.config.Neo4jConfiguration#getSession()` method를
+overriding하여 필요할 때마다 `SessionFactory`로부터 session을 발급받게 된다.
+
+### examples for Neo4J
+
+Neo4J를 위한 예제는 `io.devcken.boot.student`를 참고하기 바란다.
+
+> Neo4J를 위한 repository는 `org.springframework.data.neo4j.repository.GraphRepository<T>` interface를 확장하여 만든다.
+이렇게 만들어진 repository를 service layer에 주입할 때에는 그냥 `@Autowired` annotation을 적용하게 되면 제대로 주입을 받지 못하게 된다.
+실행 시점에 주입을 받게 되므로 반드시 `@Lazy` annotation을 함께 적용하도록 하자.
+
 ## Thymeleaf
 
 현재 버전: *2.1.4.RELEASE*
