@@ -6,6 +6,7 @@ buildscript {
 		logbackVersion = "1.1.6"
 		spockVersion = "1.0-groovy-2.4"
 		mysqlVersion = "5.1.38"
+		springSecurityVersion = "4.0.4.RELEASE"
 	}
 
 	repositories {
@@ -93,6 +94,10 @@ dependencies {
 
 	// Neo4J
 	compile "org.springframework.data:spring-data-neo4j:4.0.0.RELEASE"
+
+	// Spring Security
+	compile "org.springframework.security:spring-security-web:${springSecurityVersion}"
+	compile "org.springframework.security:spring-security-config:${springSecurityVersion}"
 
 	// Thymeleaf
 	compile "org.thymeleaf:thymeleaf:${thymeleafVersion}"

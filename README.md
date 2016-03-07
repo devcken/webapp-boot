@@ -220,6 +220,130 @@ Neo4J를 위한 예제는 `io.devcken.boot.student`를 참고하기 바란다.
 이렇게 만들어진 repository를 service layer에 주입할 때에는 그냥 `@Autowired` annotation을 적용하게 되면 제대로 주입을 받지 못하게 된다.
 실행 시점에 주입을 받게 되므로 반드시 `@Lazy` annotation을 함께 적용하도록 하자.
 
+## Spring Security
+
+현재 버전: *4.0.4.RELEASE*
+
+### Security config
+
+Spring Security를 설정하기 위해 `SecurityConfig`를 구현해야 한다. 해당 configuration class는 `@EnableWebSecurity` annotation을
+설정해야 한다. `@EnableGlobalMethodSecurity`를 설정한 이유는 method level의 보안을 적용하기 위함이다. Method security에 대한 내용은
+[Spring Security Java Config Preview: Method Security](https://spring.io/blog/2013/07/04/spring-security-java-config-preview-method-security/)를
+참고하기 바란다.
+
+#### WebSecurityConfigurerAdapter
+
+`SecurityConfig` class 내에 보면 `WebSecurityConfigurerAdapter` class를 확장한 `ServiceSecurityConfig` class가 있다. Security를 위한
+설정은 모두 이 class의 overriding method를 이용하게 된다.
+
+다음과 같이 `org.springframework.security.authentication.AuthenticationManager`을 반드시 bean으로 등록해야 한다.
+
+```
+@Bean
+public AuthenticationManager authenticationManagerBean() throws Exception {
+	return super.authenticationManagerBean();
+}
+```
+
+그리고 다음에 살펴볼 두 개의 method를 overriding하여 구현해야 한다.
+
+##### `configure(HttpSecurity http)`
+
+이 method는 `org.springframework.security.config.annotation.web.builders.HttpSecurity`의 instance를 parameter로 받게 되는데
+해당 instance를 이용해 security에 필요한 정책 및 설정을 구성할 수 있다.
+
+어떤 정책과 설정이 존재하는지는 [Spring Security, 3. Java Configuration#HttpSecurity](http://docs.spring.io/spring-security/site/docs/current/reference/html/jc.html#jc-httpsecurity)를
+참고하기 바란다.
+
+##### `configure(AuthenticationManagerBuilder auth)`
+
+`configure(HttpSecurity http)` method로 정책과 설정을 구성했다면 `configure(AuthenticationManagerBuilder auth)`를 통해서는 어떤 방법으로
+인증을 시도하고 처리할 것인지 정할 수 있다.
+
+[`AuthenticationManagerBuilder`](http://docs.spring.io/autorepo/docs/spring-security/4.0.4.RELEASE/apidocs/org/springframework/security/config/annotation/authentication/builders/AuthenticationManagerBuilder.html) class는 다양한 방법의 인증 방법을 제공한다.
+
+### `configureWeb(WebSecurity web)`
+
+`org.springframework.security.config.annotation.web.builders.WebSecurity` class는 web 보안을 위한 filtering을 제공한다.
+그래서 Boot에서는 이를 이용해 static resource들에 대해 security 정책 및 설정이 적용되지 않도록 하는데 사용하고 있다.
+
+```
+public static void configureWeb(WebSecurity web) {
+	web.ignoring().
+			antMatchers("/styles/**").
+			antMatchers("/images/**").
+			antMatchers("/scripts/**");
+}
+```
+
+### PasswordEncoder
+
+인증 시 사용자가 제공한 password를 encoding하기 위한 *encoder*가 필요하므로 bean으로 등록해 사용해야 한다.
+Boot는 [BCrypt](https://en.wikipedia.org/wiki/Bcrypt)를 이용해 password를 encoding한다.
+
+> 당연한 얘기지만, 인증에서 사용되는 *password encoder*를 사용자의 password를 database(혹은 그 외에 사용자 정보를 저장할 수 있는 무엇이든)에
+저장할 경우에도 사용해야 한다.
+
+### Handling authentication result
+
+인증의 결과는 성공 혹은 실패인데 Spring Security는 이를 위한 처리자, `org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler`와
+`org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler`를 제공한다. Boot는 이 두 handler를
+확장, overriding하여 처리 결과를 RESTful하게 전달할 수 있는 class를 제공한다.
+
+이 두 class의 overrding 메서드를 서비스에 맞게 구현하도록 한다.
+
+#### RestAuthenticationSuccessHandler
+
+인증 성공을 RESTful하게 처리하기 위한 handler로 `onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication)` method와
+`handle(HttpServletRequest request, HttpServletResponse response, Authentication authentication)` method를 overriding한다.
+
+#### RestAuthenticationFailureHandler
+
+인증 실패한 경우 결과를 RESTful하게 처리하기 위한 handler로 `onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception)`
+method를 overriding한다.
+
+### SecurityWebAppInitializer
+
+Spring Security를 적용하려면 security를 위한 context를 만들어야 하는데 이를 위해 `org.springframework.security.web.context.AbstractSecurityWebApplicationInitializer`
+class가 제공된다. Boot는 이 class를 확장한 `SecurityWebAppInitializer` class를 제공한다. 다음과 같이 `SecurityWebAppInitializer` class의 생성자에서
+`SecurityConfig` class를 등록해야 한다.
+
+```
+public class SecurityWebAppInitializer extends AbstractSecurityWebApplicationInitializer {
+	public SecurityWebAppInitializer() {
+		super(SecurityConfig.class, QueryDslConfig.class);
+	}
+}
+```
+
+> `AbstractSecurityWebApplicationInitializer` class의 확장 class가 제공되면 security context가 root context로써 동작한다.
+그러므로 `QueryDslConfig` class 또한 security context 영역에 등록해줘야 한다.
+
+### Spring Security example
+
+`SecurityConfig#ServiceSecurityConfig` class의 `configure(HttpSecurity http)` method에서는 몇 가지 정책이 구성되어 있는데
+예제를 위해서(물론 운영에서도 사용 가능하다.) 다음과 같은 설정을 기본 제공하고 있다.
+
+```
+	...
+		loginProcessingUrl("/id").
+		usernameParameter("username").
+		passwordParameter("password").
+	...
+```
+
+`loginProcessingUrl()` method를 통해서 인증 URL을 정할 수 있다. 예를 들면, `http://localhost:8080/id` URL을 요청하면 인증이 시도된다.
+`usernameParameter()`와 `passwordParameter()`는 각각 사용자의 인증 이름과 암호를 전달받기 위한 parameter의 이름을 설정할 수 있는 method다.
+
+그러므로 Boot에서 제공 중인 설정으로는 인증을 테스트하려면,
+
+```
+[POST]
+http://localhost:8080/id?username={username}&passsword={password}
+```
+
+와 같이 요청하면 된다. 인증이 성공하면 HTTP Code로 `200 OK`가 전달되어야 하며, 실패할 경우 '401 Unauthorized'가 반환되어야 한다.
+
 ## Thymeleaf
 
 현재 버전: *2.1.4.RELEASE*
