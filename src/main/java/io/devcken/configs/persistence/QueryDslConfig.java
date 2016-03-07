@@ -2,7 +2,6 @@ package io.devcken.configs.persistence;
 
 import com.querydsl.sql.MySQLTemplates;
 import com.querydsl.sql.SQLQueryFactory;
-import com.querydsl.sql.SQLTemplates;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -97,7 +96,7 @@ public class QueryDslConfig {
 	}
 
 	/**
-	 *
+	 * QueryDSL의 {@link com.querydsl.core.QueryFactory}의 구현인 {@link SQLQueryFactory}를 bean으로 등록한다.
 	 *
 	 * @param dataSource {@link QueryDslConfig#dataSource()}
 	 * @return {@link SQLQueryFactory}

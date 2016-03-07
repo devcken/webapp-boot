@@ -129,7 +129,6 @@ task generateQueryDSL(
 
 	MetaDataExporter exporter = new MetaDataExporter()
 
-	exporter.setSchemaToPackage(false);
 	exporter.setTargetFolder(sourceSets.generated.java.srcDirs.iterator().next())
 	exporter.setPackageName(querydslExporterPackage)
 
