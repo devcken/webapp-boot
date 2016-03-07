@@ -191,6 +191,35 @@ query type이 생성된다. `src/main/querydsl/io/devcken/boot/querydsl`의 경�
 
 JPA와 QueryDSL을 위한 예제는 `io.devcken.boot.employee`에 있다.
 
+## Neo4J
+
+Spring data Neo4J의 현재 버전: *4.0.0.RELEASE*
+
+Boot는 [Neo4J](http://neo4j.com) 지원을 위해 Spring data Neo4J를 사용한다.
+
+### Neo4J config
+
+`Neo4jConfig`는 접속 정보를 위해 `classpath:neo4j.properties`를 참조하며 `org.springframework.data.neo4j.config.Neo4jConfiguration`을
+확장하여 구현한다.
+
+#### Neo4jServer
+
+Neo4J 서버 정보는 `org.springframework.data.neo4j.server.Neo4jServer`의 bean으로 등록되어야 한다.
+
+#### Session
+
+Neo4J에 대한 접속은 session으로 이루어지는데 이를 위해 `org.neo4j.ogm.session.SessionFactory`이 필요하다. 이는 bean으로 등록되며
+`Neo4jConfig#getSession()` method는 `org.springframework.data.neo4j.config.Neo4jConfiguration#getSession()` method를
+overriding하여 필요할 때마다 `SessionFactory`로부터 session을 발급받게 된다.
+
+### examples for Neo4J
+
+Neo4J를 위한 예제는 `io.devcken.boot.student`를 참고하기 바란다.
+
+> Neo4J를 위한 repository는 `org.springframework.data.neo4j.repository.GraphRepository<T>` interface를 확장하여 만든다.
+이렇게 만들어진 repository를 service layer에 주입할 때에는 그냥 `@Autowired` annotation을 적용하게 되면 제대로 주입을 받지 못하게 된다.
+실행 시점에 주입을 받게 되므로 반드시 `@Lazy` annotation을 함께 적용하도록 하자.
+
 ## Thymeleaf
 
 현재 버전: *2.1.4.RELEASE*
