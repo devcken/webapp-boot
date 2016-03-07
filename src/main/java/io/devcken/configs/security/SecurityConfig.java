@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler;
@@ -238,6 +239,11 @@ public class SecurityConfig {
 	 * @author Leejun Choi
 	 */
 	protected static class RestAuthenticationFailureHandler extends ExceptionMappingAuthenticationFailureHandler {
-		// implements here!
+		@Override
+		public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
+			// TODO implements here!
+
+			super.onAuthenticationFailure(request, response, exception);
+		}
 	}
 }
