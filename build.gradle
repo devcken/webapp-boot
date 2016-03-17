@@ -99,6 +99,10 @@ dependencies {
 	compile "org.springframework.security:spring-security-web:${springSecurityVersion}"
 	compile "org.springframework.security:spring-security-config:${springSecurityVersion}"
 
+	// Spring Integration
+	compile "org.springframework.integration:spring-integration-websocket:${springVersion}"
+	compile "org.springframework.integration:spring-integration-java-dsl:1.1.2.RELEASE"
+
 	// Thymeleaf
 	compile "org.thymeleaf:thymeleaf:${thymeleafVersion}"
 	compile "org.thymeleaf:thymeleaf-spring4:${thymeleafVersion}"
