@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor;
 import org.springframework.validation.Validator;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
@@ -102,5 +103,10 @@ public class WebServletConfig extends WebMvcConfigurerAdapter {
 		registry.addResourceHandler("/scripts/**").addResourceLocations("classpath:scripts/");
 
 		super.addResourceHandlers(registry);
+	}
+
+	@Bean
+	public ScheduledAnnotationBeanPostProcessor scheduledAnnotationBeanPostProcessor() {
+		return new ScheduledAnnotationBeanPostProcessor();
 	}
 }

@@ -25,6 +25,7 @@
 <div style="margin-bottom: 10px;">
 	<button class="button connect_button">Connect</button>
 	<button class="button disconnect_button" disabled="disabled">Disconnect</button>
+	<button class="button subscribe_button" disabled="disabled">Subscribe</button>
 </div>
 <div style="display: inline-block">
 	<label for="lhs" class="label">Left-hand side</label><input type="text" id="lhs" name="lhs"/>
@@ -68,6 +69,7 @@
 	function changeConnectionStatus(connected) {
 		document.querySelector('.connect_button').disabled = connected;
 		document.querySelector('.disconnect_button').disabled = !connected;
+		document.querySelector('.subscribe_button').disabled = !connected;
 		document.querySelector('.results').innerHTML = '';
 	}
 
@@ -91,9 +93,18 @@
 		resultsEl.appendChild(paraEl);
 	}
 
+	function subscribe() {
+		stomp.subscribe('/sum/subscribable', function(result) {
+			result = JSON.parse(result.body);
+
+			console.log(result);
+		});
+	}
+
 	document.querySelector('.connect_button').addEventListener('click', connect);
 	document.querySelector('.disconnect_button').addEventListener('click', disconnect);
 	document.querySelector('.sum_button').addEventListener('click', sendForSum);
+	document.querySelector('.subscribe_button').addEventListener('click', subscribe);
 
 </script>
 </body>
