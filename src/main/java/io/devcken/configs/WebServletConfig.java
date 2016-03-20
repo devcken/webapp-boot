@@ -1,5 +1,6 @@
 package io.devcken.configs;
 
+import io.devcken.configs.integration.WebSocketConfig;
 import io.devcken.configs.persistence.Neo4jConfig;
 import io.devcken.configs.persistence.TransactionConfig;
 import io.devcken.configs.view.ThymeleafConfig;
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor;
 import org.springframework.validation.Validator;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
@@ -33,7 +35,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 @ComponentScan(
 		basePackages = { "io.devcken.boot", "io.devcken.exception" }
 )
-@Import({ ThymeleafConfig.class, TransactionConfig.class, Neo4jConfig.class })
+@Import({ ThymeleafConfig.class, TransactionConfig.class, Neo4jConfig.class, WebSocketConfig.class })
 public class WebServletConfig extends WebMvcConfigurerAdapter {
 	@Autowired
 	ApplicationContext context;
@@ -101,5 +103,10 @@ public class WebServletConfig extends WebMvcConfigurerAdapter {
 		registry.addResourceHandler("/scripts/**").addResourceLocations("classpath:scripts/");
 
 		super.addResourceHandlers(registry);
+	}
+
+	@Bean
+	public ScheduledAnnotationBeanPostProcessor scheduledAnnotationBeanPostProcessor() {
+		return new ScheduledAnnotationBeanPostProcessor();
 	}
 }

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8"/>
+	<title>WebSocket on Spring Integration</title>
+	<script src="scripts/websocket/sockjs.js"></script>
+	<script src="scripts/websocket/stomp.js"></script>
+	<style>
+		.button {
+			height: 30px;
+			font-size: 0.7em;
+			font-weight: bold;
+		}
+
+		.label {
+			display: block;
+			width: 150px;
+			font-size: 0.6em;
+			font-weight: bold;
+		}
+	</style>
+</head>
+<body>
+<h1 style="font-size: 1em;">WebSocket example using Spring Integration</h1>
+<div style="margin-bottom: 10px;">
+	<button class="button connect_button">Connect</button>
+	<button class="button disconnect_button" disabled="disabled">Disconnect</button>
+	<button class="button subscribe_button" disabled="disabled">Subscribe</button>
+</div>
+<div style="display: inline-block">
+	<label for="lhs" class="label">Left-hand side</label><input type="text" id="lhs" name="lhs"/>
+</div>
+<div style="display: inline-block">
+	<label for="rhs" class="label">Right-hand side</label><input type="text" id="rhs" name="rhs"/>
+</div>
+<div style="margin-top: 10px;clear: left;">
+	<button class="button sum_button">Send to Add</button>
+</div>
+<div class="results"></div>
+<script type="text/javascript">
+	var stomp;
+
+	function connect(e) {
+		var socket = new SockJS('/withws');
+
+		stomp = Stomp.over(socket);
+
+		stomp.connect({}, connected);
+	}
+
+	function connected(frame) {
+		changeConnectionStatus(true);
+
+		console.log('Connected...');
+
+		stomp.subscribe('/send/result', showResult);
+	}
+
+	function disconnect(e) {
+		stomp.disconnect(disconnected);
+	}
+
+	function disconnected() {
+		changeConnectionStatus(false);
+
+		console.log("Disconnected.");
+	}
+
+	function changeConnectionStatus(connected) {
+		document.querySelector('.connect_button').disabled = connected;
+		document.querySelector('.disconnect_button').disabled = !connected;
+		document.querySelector('.subscribe_button').disabled = !connected;
+		document.querySelector('.results').innerHTML = '';
+	}
+
+	function sendForSum(e) {
+		stomp.send("/receive/calc", {},
+				JSON.stringify({
+					'lhs': document.querySelector('input[name="lhs"]').value,
+					'rhs': document.querySelector('input[name="rhs"]').value
+				})
+		);
+	}
+
+	function showResult(result) {
+		result = JSON.parse(result.body);
+
+		var resultsEl = document.querySelector('.results'),
+			paraEl = document.createElement('p');
+
+		paraEl.appendChild(document.createTextNode(result.lhs + " + " + result.rhs + " = " + result.result));
+
+		resultsEl.appendChild(paraEl);
+	}
+
+	function subscribe() {
+		stomp.subscribe('/send/subscribable', function(result) {
+			result = JSON.parse(result.body);
+
+			console.log(result);
+		});
+	}
+
+	document.querySelector('.connect_button').addEventListener('click', connect);
+	document.querySelector('.disconnect_button').addEventListener('click', disconnect);
+	document.querySelector('.sum_button').addEventListener('click', sendForSum);
+	document.querySelector('.subscribe_button').addEventListener('click', subscribe);
+
+</script>
+</body>
+</html>
