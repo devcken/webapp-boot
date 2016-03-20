@@ -344,6 +344,116 @@ http://localhost:8080/id?username={username}&passsword={password}
 
 와 같이 요청하면 된다. 인증이 성공하면 HTTP Code로 `200 OK`가 전달되어야 하며, 실패할 경우 '401 Unauthorized'가 반환되어야 한다.
 
+## Spring Integration
+
+현재 버전: *4.2.5.RELEASE*
+
+다른 시스템과 커뮤니케이션이 필요한 경우가 종종 있는데, 시스템마다 전송 방식이 다르다. 그렇기 때문에 전송 방식에 따라 구현이 달라지며, 어떤 domain data를
+다루는지에 따라서도 구현이 달라진다. 더구나 strong coupling으로 인해 business layer와의 구분이 어려워지게 된다.
+
+이러한 한계를 극복하기 위해서 구현된 것이 바로 **Spring Integration**이다. 물론, transporting과 messaging을 위한 [*Apache Camel*](http://camel.apache.org)이라는
+좋은 라이브러리가 있지만, Spring Framework을 container로 사용하므로 *Spring Integration*을 사용하기로 했다.
+
+### Spring Integration WebSocket
+
+*spring-integration-websocket* module은 전송 방식으로 [**WebSocket**](https://www.w3.org/TR/2011/WD-websockets-20110419/)을
+지원하는 Spring Integration의 module이다.
+
+예제는 [http://localhsot:8080/websocket](http://localhsot:8080/websocket)을 통해 확인할 수 있다.
+
+#### WebSocketConfig
+
+`org.springframework.web.socket.config.annotation.AbstractWebSocketMessageBrokerConfigurer`을 확장하여 message broker와
+STOMP endpoint를 등록한다.
+
+`org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker` annotation을 적용하여 상위 레벨의 서브 프로토콜을 이용해
+message broker가 지원되는 messaging을 지원하게 된다.
+
+##### `MessageBrokerRegistry#enableSimpleBroker(...)`
+broker의 대상 목적지에 대한 prefix를 설정한다. 예제에서 *send*이라는 이름으로 message broker의 prefix를 설정했는데, 이것은 쉽게 말해 server-side에서
+client-side로 전송할 때 사용하는 경로의 prefix를 말한다.(편의 상, server를 주체로 용어를 결정하였다.)
+
+##### `MessageBrokerRegistry#setApplicationDestinationPrefixes(...)`
+Websocket을 이용한 application의 prefix를 설정한다. 예제에서는 *receive*이라는 이름으로 application prefix를 설정했는데, 이것은 쉽게 말해 client-side에서
+server-side로 전송할 때 사용하는 경로의 prefix를 말한다.
+
+##### `StompEndpointRegistry#addEndpoint(...)#withSockJS()`
+STOMP을 통해 통신하는 endpoint를 등록하게 된다. 그리고 `withSockJS` 메서드로 SockJS에 대한 fallback을 허용하게 된다. 예제에서는 *withws*라는 이름의 endpoint를
+등록했으므로 client-side에서 접속할 때 사용하게 되는 URL은 `http://localhost:8080/withws`가 된다.
+
+예제 파일 중 websocket.html을 보게 되면,
+
+```
+	function connect(e) {
+		var socket = new SockJS('/withws');
+
+		stomp = Stomp.over(socket);
+
+		stomp.connect({}, connected);
+	}
+```
+
+와 같이 `/withws`라는 주소를 이용하고 있다.
+
+#### WebSocketController
+
+*spring-integration-websocket* module을 테스트하기 위한 controller로, 요청 관련 매핑이나 messaging을 위한 매핑 정보, 그리고 그에 대한 처리를
+담당하고 있다. 앞서 살펴보았던 WebSocketConfig는 설정을 담당한다면, WebSocketController는 우리가 실제 구현해야 할 MVC pattern 중 controller에
+해당한다.
+
+##### @MessageMapping(...)
+Client-side로부터 들어오는 요청을 받는 경로와 해당 요청을 처리하는 method를 mapping하는 역할을 한다. Parameter로 설정되는 string은 `WebSocketConfig`에서
+설정한 `MessageBrokerRegistry#setApplicationDestinationPrefixes(...)`의 prefix와 결합되어 하나의 경로를 만든다.
+
+예제에서 `WebSocketController#sum()` method는 *calc*라는 mapping 정보를 제공했으므로 `/receive/calc`라는 주소와 mapping된다.
+그러므로 client-side에서는,
+
+```
+	stomp.send("/receive/calc", {},
+		... // paramters
+	);
+```
+
+와 같이, 전송하게 된다.
+
+##### @SendTo(...)
+`@MessageMapping`과 마찬가지로 `WebSocketController#sum()`에 적용된 annotation으로 websocket을 통해 수신된 요청에 대한 응답을 어떤 경로로
+할지를 결정하게 된다.
+
+예제에서는 `/send/result`를 경로를 지정했다. 이 경로는 `MessageBrokerRegistry#enableSimpleBroker("send")`을 통해 결정된다. 즉, 경로는 prefix와
+나머지 경로로 이루어진다.
+
+##### messaging template과 PUB-SUB
+`WebSocketController`에는 `SimpMessagingTemplate`이라는 클래스의 인스턴스가 injection되는데, `AbstractMessageSendingTemplate<String>`의 확장이다.
+예제에서는 client-side로 message를 전송하기 위해 사용되는데, 이 클래스의 인스턴스는 `AbstractWebSocketMessageBrokerConfigurer`을 확장함으로써
+injection이 가능하다. 하지만, Java configuration을 이용해 설정될 때에는 반드시 `@Lazy` annotation을 함께 지정해주어야 한다.
+`AbstractWebSocketMessageBrokerConfigurer`을 확장하게 되면 message context가 생기게 되는데, 이 message context가 나중에 생성되므로
+servlet context 생성 시점에 injection이 불가능하다. 그러므로 실제 사용 시점에 이를 injection 받아야한다.
+
+이 `SimpMessagingTemplate`의 인스턴스는 `WebSocketController#scheduledForSub()`라는 method 내에서 사용된다.
+
+```
+	...
+	messagingTemplate.convertAndSend("/send/subscribable", result);
+	...
+```
+
+위와 같이 `/send/subscriable` 이라는 경로로 message를 전달한다.
+이를 client-side에서 전달받기 위해서 다음과 같은 구문을 실행하게 된다.
+
+```
+	...
+
+	stomp.subscribe('/send/subscribable', function(result) {
+		...
+	});
+
+	...
+
+```
+
+이렇게 하여 client는 server-side의 message를 subscribe하게 된다.
+
 ## Thymeleaf
 
 현재 버전: *2.1.4.RELEASE*

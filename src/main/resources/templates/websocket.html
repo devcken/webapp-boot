@@ -41,7 +41,7 @@
 	var stomp;
 
 	function connect(e) {
-		var socket = new SockJS('/calc');
+		var socket = new SockJS('/withws');
 
 		stomp = Stomp.over(socket);
 
@@ -53,7 +53,7 @@
 
 		console.log('Connected...');
 
-		stomp.subscribe('/sum/result', showResult);
+		stomp.subscribe('/send/result', showResult);
 	}
 
 	function disconnect(e) {
@@ -74,7 +74,7 @@
 	}
 
 	function sendForSum(e) {
-		stomp.send("/sum/calc", {},
+		stomp.send("/receive/calc", {},
 				JSON.stringify({
 					'lhs': document.querySelector('input[name="lhs"]').value,
 					'rhs': document.querySelector('input[name="rhs"]').value
@@ -94,7 +94,7 @@
 	}
 
 	function subscribe() {
-		stomp.subscribe('/sum/subscribable', function(result) {
+		stomp.subscribe('/send/subscribable', function(result) {
 			result = JSON.parse(result.body);
 
 			console.log(result);

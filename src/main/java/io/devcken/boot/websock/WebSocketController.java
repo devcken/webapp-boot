@@ -24,7 +24,7 @@ public class WebSocketController {
 	}
 
 	@MessageMapping("/calc")
-	@SendTo("/sum/result")
+	@SendTo("/send/result")
 	public Map<String, Integer> sum(Map<String, String> inputs) throws Exception {
 		Map<String, Integer> result = new HashMap<>();
 
@@ -42,12 +42,12 @@ public class WebSocketController {
 		return result;
 	}
 
-	@Scheduled(fixedDelay = 3000)
+	@Scheduled(fixedDelay = 5000)
 	public void scheduledForSub() {
 		Map<String, Object> result = new HashMap<>();
 
 		result.put("subscribe", true);
 
-		messagingTemplate.convertAndSend("/sum/subscribable", result);
+		messagingTemplate.convertAndSend("/send/subscribable", result);
 	}
 }
