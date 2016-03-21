@@ -153,3 +153,8 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+### Redis template
+# Ignore redis binary dump (dump.rdb) files
+
+*.rdb
+
