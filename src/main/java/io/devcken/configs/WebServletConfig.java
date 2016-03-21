@@ -1,6 +1,7 @@
 package io.devcken.configs;
 
-import io.devcken.configs.integration.WebSocketConfig;
+import io.devcken.configs.integration.RedisIntegrationConfig;
+import io.devcken.configs.integration.WebSocketIntegrationConfig;
 import io.devcken.configs.persistence.Neo4jConfig;
 import io.devcken.configs.persistence.TransactionConfig;
 import io.devcken.configs.view.ThymeleafConfig;
@@ -35,7 +36,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 @ComponentScan(
 		basePackages = { "io.devcken.boot", "io.devcken.exception" }
 )
-@Import({ ThymeleafConfig.class, TransactionConfig.class, Neo4jConfig.class, WebSocketConfig.class })
+@Import({ ThymeleafConfig.class, TransactionConfig.class, Neo4jConfig.class, WebSocketIntegrationConfig.class, RedisIntegrationConfig.class })
 public class WebServletConfig extends WebMvcConfigurerAdapter {
 	@Autowired
 	ApplicationContext context;

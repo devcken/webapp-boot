@@ -454,6 +454,37 @@ servlet context 생성 시점에 injection이 불가능하다. 그러므로 실�
 
 이렇게 하여 client는 server-side의 message를 subscribe하게 된다.
 
+### Spring Integration Redis
+
+*spring-integration-redis* module은 [Redis](http://www.redis.io)와의 통신을 지원하는 Spring Integration의 module이다.
+
+#### Requirements
+
+예제가 원활하게 실행되려면 각자의 local에 *Redis*가 설치되어 있어야 한다.
+
+#### RedisIntegrationConfig
+
+Redis와의 PUB-SUB을 지원하기 위한 설정이다.
+
+##### JedisConnectionFactory
+
+Redis와의 connection을 위해 `org.springframework.data.redis.connection.jedis.JedisConnectionFactory`을 bean으로 등록한다.
+
+##### RedisTemplate
+
+Redis Message를 channel로 publishing하기 위한 `org.springframework.data.redis.core.RedisTemplate`을 bean으로 등록한다.
+
+##### MessageListenerAdapter
+
+`org.springframework.data.redis.connection.MessageListener`의 구현을 `org.springframework.data.redis.listener.adapter.MessageListenerAdapter`을
+bean에 설정하여 등록한다. `org.springframework.data.redis.connection.MessageListener`의 구현을 통해 subscribe될 Redis Message를 어떻게
+처리할지를 정해야 한다.
+
+##### RedisMessageListenerContainer
+
+Redis Message를 listening하기 위한 container인 `org.springframework.data.redis.listener.RedisMessageListenerContainer`를 bean으로
+등록한다. connection 정보와 listener adapter 그리고 channel 정보가 필요하다.
+
 ## Thymeleaf
 
 현재 버전: *2.1.4.RELEASE*
