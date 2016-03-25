@@ -1,7 +1,11 @@
 package io.devcken.configs.integration;
 
+import io.devcken.support.integration.StompClientCountingInterceptor;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.messaging.support.ChannelInterceptorAdapter;
 import org.springframework.web.socket.config.annotation.AbstractWebSocketMessageBrokerConfigurer;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
@@ -34,6 +38,19 @@ public class WebSocketIntegrationConfig extends AbstractWebSocketMessageBrokerCo
 	 */
 	@Override
 	public void registerStompEndpoints(StompEndpointRegistry registry) {
-		registry.addEndpoint("/withws").withSockJS();
+		registry.addEndpoint("/withws")
+				.withSockJS();
+	}
+
+	@Bean
+	public ChannelInterceptorAdapter clientCountingInterceptor() {
+		return new StompClientCountingInterceptor();
+	}
+
+	@Override
+	public void configureClientInboundChannel(ChannelRegistration registration) {
+		registration.setInterceptors(clientCountingInterceptor());
+
+		super.configureClientInboundChannel(registration);
 	}
 }
