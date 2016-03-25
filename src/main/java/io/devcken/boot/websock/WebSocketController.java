@@ -1,5 +1,6 @@
 package io.devcken.boot.websock;
 
+import io.devcken.support.integration.StompClientCountingInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -17,6 +18,10 @@ public class WebSocketController {
 	@Autowired
 	@Lazy
 	public SimpMessagingTemplate messagingTemplate;
+
+	@Autowired
+	@Lazy
+	private StompClientCountingInterceptor clientCountingInterceptor;
 
 	@RequestMapping("/websocket")
 	public String testPage() {
@@ -44,6 +49,8 @@ public class WebSocketController {
 
 	@Scheduled(fixedDelay = 5000)
 	public void scheduledForSub() {
+		if (clientCountingInterceptor.getSubscribedCountForDest("/send/subscribable") == 0) return;
+
 		Map<String, Object> result = new HashMap<>();
 
 		result.put("subscribe", true);
