@@ -41,7 +41,7 @@
 	var stomp;
 
 	function connect(e) {
-		var socket = new SockJS('/withws');
+		var socket = new SockJS('http://localhost:8081/withws');
 
 		stomp = Stomp.over(socket);
 
