@@ -1,10 +1,11 @@
 package io.devcken.configs.integration;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.devcken.boot.redis.RedisMessageListener;
+import io.devcken.boot.redis.RedisPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.connection.Message;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -13,9 +14,8 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.data.redis.serializer.GenericToStringSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.scheduling.annotation.Scheduled;
 
-import java.util.concurrent.atomic.AtomicLong;
+import javax.inject.Inject;
 
 /**
  * spring-integration-redis를 이용한 Redis 통합 설정으로 PUB-SUB 패러다임을 사용하도록 구성하였다.
@@ -23,16 +23,35 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Leejun Choi
  */
 @Configuration
+@PropertySource("classpath:redis.properties")
 public class RedisIntegrationConfig {
+	private final Environment environment;
+
+	@Inject
+	public RedisIntegrationConfig(Environment environment) {
+		this.environment = environment;
+	}
+
+	/**
+	 * Redis connection을 위한 connection factory bean을 등록한다.
+	 *
+	 * @return {@link JedisConnectionFactory}
+	 */
 	@Bean
 	public JedisConnectionFactory jedisConnectionFactory() {
-		return new JedisConnectionFactory();
+		JedisConnectionFactory jedisConnectionFactory = new JedisConnectionFactory();
+
+		jedisConnectionFactory.setHostName(environment.getProperty("redis.host"));
+		jedisConnectionFactory.setPort(Integer.parseInt(environment.getProperty("redis.port")));
+		jedisConnectionFactory.setPassword(environment.getProperty("redis.password"));
+
+		return jedisConnectionFactory;
 	}
 
 	/**
 	 * Redis Message publishing을 위한 template를 bean으로 등록한다.
 	 *
-	 * @param jedisConnectionFactory
+	 * @param jedisConnectionFactory {@link JedisConnectionFactory}
 	 * @return {@link RedisTemplate}
 	 */
 	@Bean
@@ -47,12 +66,6 @@ public class RedisIntegrationConfig {
 		return redisTemplate;
 	}
 
-	@Bean
-	public RedisPublisher redisPublisher(RedisTemplate redisTemplate,
-	                                      ChannelTopic channelTopic) {
-		return new RedisPublisher(redisTemplate, channelTopic);
-	}
-
 	/**
 	 * Redis Message를 subscribe하기 위한 listener를 bean으로 등록한다.
 	 *
@@ -64,64 +77,39 @@ public class RedisIntegrationConfig {
 	}
 
 	/**
-	 * Redis 채널을 위한 {@link ChannelTopic} 인스턴스를 bean으로 등록한다.
-	 *
-	 * @return {@link ChannelTopic}
-	 */
-	@Bean
-	public ChannelTopic channelTopic() {
-		return new ChannelTopic("pubsub:queue");
-	}
-
-	/**
 	 * Redis Message를 subscribe하는 container를 등록한다.
 	 *
-	 * @param jedisConnectionFactory
-	 * @param messageListenerAdapter
-	 * @param channelTopic
+	 * @param jedisConnectionFactory {@link JedisConnectionFactory}
 	 * @return {@link RedisMessageListenerContainer}
 	 */
 	@Bean
 	public RedisMessageListenerContainer messageListenerContainer(JedisConnectionFactory jedisConnectionFactory,
-	                                                              MessageListenerAdapter messageListenerAdapter,
-	                                                              ChannelTopic channelTopic) {
+	                                                              RedisMessageListener messageListener) {
 		final RedisMessageListenerContainer messageListenerContainer = new RedisMessageListenerContainer();
 
 		messageListenerContainer.setConnectionFactory(jedisConnectionFactory);
-		messageListenerContainer.addMessageListener(messageListenerAdapter, channelTopic);
+
+		messageListenerContainer.addMessageListener(messageListener, new ChannelTopic(messageListener.getChannelName()));
 
 		return messageListenerContainer;
 	}
 
 	/**
-	 * Redis Message를 subscribe하여 처리하게 될 listener 클래스를 구현한다.
+	 * {@link MessageListener}를 구현한 뒤 bean으로 등록하고 이를 {@link RedisMessageListenerContainer}에 설정한다.
+	 * @return {@link RedisMessageListener}
 	 */
-	private class RedisMessageListener implements MessageListener {
-		private Logger logger = LoggerFactory.getLogger(RedisMessageListener.class);
-
-		@Override
-		public void onMessage(Message message, byte[] pattern) {
-			logger.debug(message.toString());
-		}
+	@Bean
+	RedisMessageListener messageListener() {
+		return new RedisMessageListener();
 	}
 
 	/**
-	 * Redis Message를 publshing하기 위한 publisher를 구현한다.
+	 * Redis로 메시지를 전송하기 위한 bean으로 실제로는 이렇게 하지 않아도 된다.
+	 * @param redisTemplate {@link RedisTemplate}
+	 * @return {@link RedisPublisher}
 	 */
-	private class RedisPublisher {
-		private RedisTemplate redisTemplate;
-		private ChannelTopic channelTopic;
-		private final AtomicLong counter = new AtomicLong(0);
-
-		public RedisPublisher(RedisTemplate redisTemplate,
-		                      ChannelTopic channelTopic) {
-			this.redisTemplate = redisTemplate;
-			this.channelTopic = channelTopic;
-		}
-
-		@Scheduled(fixedDelay = 5000)
-		public void publish() {
-			redisTemplate.convertAndSend(this.channelTopic.getTopic(), "Message " + counter.incrementAndGet() + ", " + Thread.currentThread().getName());
-		}
+	@Bean
+	public RedisPublisher redisPublisher(RedisTemplate redisTemplate) {
+		return new RedisPublisher(redisTemplate, "pubsub:queue");
 	}
 }
