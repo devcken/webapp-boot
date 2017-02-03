@@ -2,27 +2,32 @@ package io.devcken.boot.employee.repository;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.sql.SQLQueryFactory;
-import io.devcken.boot.employee.entity.EmployeeEntity;
+import io.devcken.boot.employee.entity.Employee;
 import io.devcken.boot.querydsl.QEmployee;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
+import javax.inject.Inject;
 import java.util.List;
 
 @Repository
 public class EmployeeRepository {
-	@Autowired
-	private SQLQueryFactory queryFactory;
+	private final SQLQueryFactory queryFactory;
 
-	public List findAll() {
-		QEmployee qEmployeeEntity = QEmployee.Employee;
-
-		return queryFactory.select(Projections.bean(EmployeeEntity.class, qEmployeeEntity.all())).from(qEmployeeEntity).fetch();
+	@Inject
+	public EmployeeRepository(SQLQueryFactory queryFactory) {
+		this.queryFactory = queryFactory;
 	}
 
-	@Transactional
-	public EmployeeEntity save(EmployeeEntity employeeEntity) {
+	public List<Employee> findAll() {
+		QEmployee qEmployeeEntity = QEmployee.Employee;
+
+		return queryFactory
+				.select(Projections.bean(Employee.class, qEmployeeEntity.all()))
+				.from(qEmployeeEntity)
+				.fetch();
+	}
+
+	public Employee save(Employee employeeEntity) {
 		QEmployee employee = QEmployee.Employee;
 
 		if (employeeEntity.getId() == null) {

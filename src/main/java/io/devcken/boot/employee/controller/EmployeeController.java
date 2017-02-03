@@ -1,9 +1,10 @@
 package io.devcken.boot.employee.controller;
 
-import io.devcken.boot.employee.entity.EmployeeEntity;
+import io.devcken.boot.employee.entity.Employee;
 import io.devcken.boot.employee.service.EmployeeService;
 import io.devcken.exception.InvalidRequestException;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,38 +12,37 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.inject.Inject;
 import javax.validation.Valid;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 @Controller
 @RequestMapping("/employee")
 public class EmployeeController {
-	@Autowired
-	private EmployeeService service;
+	private final EmployeeService service;
+
+	@Inject
+	public EmployeeController(EmployeeService service) {
+		this.service = service;
+	}
 
 	@RequestMapping(value = "/employees")
 	@ResponseBody
-	public Map<String, Object> findAll() {
-		Map<String, Object> map = new HashMap<>();
-
-		map.put("employees", service.findAll());
-
-		return map;
+	public ResponseEntity<List<Employee>> findAll() {
+		return ResponseEntity.ok().body(this.service.findAll());
 	}
 
 	@RequestMapping(value = "/save", method = RequestMethod.POST)
 	@ResponseBody
-	public Map<String, Object> save(@RequestBody @Valid EmployeeEntity employeeEntity, BindingResult bindingResult) {
+	public ResponseEntity<Employee> save(@RequestBody @Valid Employee employee, BindingResult bindingResult) {
 		if (bindingResult.hasErrors()) {
 			throw new InvalidRequestException(bindingResult.getObjectName(), bindingResult);
 		}
 
-		Map<String, Object> map = new HashMap<>();
+		employee = service.save(employee);
 
-		map.put("employee", service.save(employeeEntity));
-		map.put("success", true);
-
-		return map;
+		return (employee == null ?
+				ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR) :
+				ResponseEntity.ok()).body(employee);
 	}
 }

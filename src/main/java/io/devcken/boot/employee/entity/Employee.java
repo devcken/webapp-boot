@@ -7,7 +7,7 @@ import javax.persistence.Id;
 import javax.validation.constraints.NotNull;
 
 @QueryEntity
-public class EmployeeEntity {
+public class Employee {
 	@Id
 	private Long id;
 
