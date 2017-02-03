@@ -7,15 +7,15 @@ import io.devcken.configs.persistence.TransactionConfig;
 import io.devcken.configs.view.ThymeleafConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.*;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.format.FormatterRegistry;
+import org.springframework.format.datetime.DateFormatter;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor;
 import org.springframework.validation.Validator;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -36,7 +36,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 @ComponentScan(
 		basePackages = { "io.devcken.boot", "io.devcken.exception" }
 )
-@Import({ ThymeleafConfig.class, TransactionConfig.class, Neo4jConfig.class, WebSocketIntegrationConfig.class, RedisIntegrationConfig.class })
+@EnableAspectJAutoProxy
 public class WebServletConfig extends WebMvcConfigurerAdapter {
 	@Autowired
 	ApplicationContext context;
@@ -109,5 +109,38 @@ public class WebServletConfig extends WebMvcConfigurerAdapter {
 	@Bean
 	public ScheduledAnnotationBeanPostProcessor scheduledAnnotationBeanPostProcessor() {
 		return new ScheduledAnnotationBeanPostProcessor();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * Cors 매핑과 허용 정보를 설정한다.
+	 *
+	 * @param registry {@link CorsRegistry}
+	 */
+	@Override
+	public void addCorsMappings(CorsRegistry registry) {
+		registry.addMapping("/**")
+				.allowCredentials(true)
+				.allowedHeaders("*")
+				.allowedOrigins("*")
+				.allowedMethods("GET", "POST", "PUT", "DELETE")
+				.maxAge(3600);
+
+		super.addCorsMappings(registry);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * 특정 type에 대한 {@link org.springframework.format.Formatter}나 {@link org.springframework.core.convert.converter.Converter}를 등록한다.
+	 *
+	 * @param registry {@link FormatterRegistry}
+	 */
+	@Override
+	public void addFormatters(FormatterRegistry registry) {
+		registry.addFormatter(new DateFormatter("yyyy-MM-dd HH:mm:ss"));
+
+		super.addFormatters(registry);
 	}
 }
