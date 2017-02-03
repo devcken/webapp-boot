@@ -43,6 +43,7 @@ public class WebAppInitializer extends AbstractAnnotationConfigDispatcherServlet
 	@Override
 	protected java.lang.Class<?>[] getServletConfigClasses() {
 		return new java.lang.Class<?>[] {
+				SharedConfig.class,
 				WebServletConfig.class,
 				ThymeleafConfig.class,
 				TransactionConfig.class,
