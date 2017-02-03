@@ -9,6 +9,7 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.instrument.classloading.InstrumentationLoadTimeWeaver;
+import org.springframework.jdbc.datasource.lookup.JndiDataSourceLookup;
 import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.Database;
@@ -53,6 +54,11 @@ public class QueryDslConfig {
 		dataSource.setJdbcUrl(environment.getProperty("database.url"));
 		dataSource.setUsername(environment.getProperty("database.username"));
 		dataSource.setPassword(environment.getProperty("database.password"));
+
+		// JNDI(Java Naming and Directory Interface)를 사용하는 경우, DataSource에 직접 설정하지 않고 아래와 같이 JNDI 이름을 사용하도록 한다.
+		//JndiDataSourceLookup dataSourceLookup = new JndiDataSourceLookup();
+
+		//dataSource.setDataSource(dataSourceLookup.getDataSource(environment.getProperty("database.jndi")));
 
 		return dataSource;
 	}
