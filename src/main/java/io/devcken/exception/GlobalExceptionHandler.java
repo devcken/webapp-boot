@@ -2,6 +2,7 @@ package io.devcken.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.Errors;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -45,6 +46,30 @@ public class GlobalExceptionHandler {
 		map.put("errors", errors.getAllErrors());
 
 		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+
+		return map;
+	}
+
+	/**
+	 * <p><code>@RequestParam</code>과 <code>@Valid</code>가 annotated된
+	 * http parameter argument에 대한 {@link MissingServletRequestParameterException} 예외 발생 시
+	 * 이를 bad request로 간주하고 관련 내용을 {@link ResponseBody}를 이용해 사용자에게 전달한다.</p>
+	 * <p>해당 핸들러에 인입되는 경우는 request 요청 시 parameter 요건을 충족시키지 못했기 때문이다.</p>
+	 *
+	 * @param e {@link MissingServletRequestParameterException MissingServletRequestParameterException}
+	 * @param response {@link HttpServletResponse}
+	 * @return {@link java.util.Map}
+	 */
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	@ResponseBody
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public Map<String, Object> missingServletRequestParameterException(MissingServletRequestParameterException e, HttpServletResponse response) {
+		Map<String, Object> map = new HashMap<>();
+
+//		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+
+		map.put("error", true);
+		map.put("message", e.getMessage());
 
 		return map;
 	}
